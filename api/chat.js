@@ -86,53 +86,137 @@ const SYSTEM_PROMPT = `당신은 중소벤처기업연수원(KOSMES)의 AI 스�
 - 답변 마지막에 "더 궁금한 점 있으시면 편하게 물어보세요 😊" 추가
 - 마크다운 형식 사용 가능`;
 
+const API_BASE_URL = process.env.MLAPI_BASE_URL || 'https://mlapi.run/abc-1234-xyz/v1';
+const API_KEY = process.env.MLAPI_API_KEY;
+const MODEL = 'openai/gpt-5.4';
+
+function buildUserMessage(message, image) {
+  if (!image?.data) {
+    return { role: 'user', content: message };
+  }
+
+  return {
+    role: 'user',
+    content: [
+      { type: 'text', text: message },
+      {
+        type: 'image_url',
+        image_url: {
+          url: `data:${image.media_type || 'image/jpeg'};base64,${image.data}`
+        }
+      }
+    ]
+  };
+}
+
+function transformOpenAIStreamToAnthropic(upstreamBody) {
+  const reader = upstreamBody.getReader();
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  return new ReadableStream({
+    async start(controller) {
+      let buffer = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('data:')) continue;
+
+            const data = trimmed.slice(5).trim();
+            if (data === '[DONE]') continue;
+
+            try {
+              const json = JSON.parse(data);
+              const text = json.choices?.[0]?.delta?.content;
+              if (!text) continue;
+
+              const anthropicEvent = JSON.stringify({
+                type: 'content_block_delta',
+                delta: { type: 'text_delta', text }
+              });
+              controller.enqueue(encoder.encode(`data: ${anthropicEvent}\n\n`));
+            } catch {
+              // skip malformed chunks
+            }
+          }
+        }
+      } catch (error) {
+        controller.error(error);
+        return;
+      }
+
+      controller.close();
+    }
+  });
+}
+
 export default async function handler(req) {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
   }
 
+  if (!API_KEY) {
+    return new Response(JSON.stringify({ error: 'API 키가 설정되지 않았습니다.' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
   try {
-    const { message, history, simple } = await req.json();
+    const { message, history, simple, image } = await req.json();
 
     const messages = [
+      { role: 'system', content: SYSTEM_PROMPT },
       ...(history || []),
-      { role: 'user', content: message }
+      buildUserMessage(message, image)
     ];
 
-    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
+    const upstream = await fetch(`${API_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
+        Authorization: `Bearer ${API_KEY}`
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: simple ? 300 : 768,
+        model: MODEL,
+        max_completion_tokens: simple ? 300 : 768,
         stream: true,
-        system: SYSTEM_PROMPT,
         messages
       })
     });
 
     if (!upstream.ok) {
-      const err = await upstream.json();
-      return new Response(JSON.stringify({ error: err.error?.message || '오류가 발생했습니다.' }), {
+      let errMsg = '오류가 발생했습니다.';
+      try {
+        const err = await upstream.json();
+        errMsg = err.error?.message || err.message || errMsg;
+      } catch {
+        // keep default message
+      }
+
+      return new Response(JSON.stringify({ error: errMsg }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // Pass the SSE stream directly to the client
-    return new Response(upstream.body, {
+    return new Response(transformOpenAIStreamToAnthropic(upstream.body), {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'X-Accel-Buffering': 'no'
       }
     });
-
-  } catch (e) {
+  } catch {
     return new Response(JSON.stringify({ error: '서버 오류가 발생했습니다.' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
