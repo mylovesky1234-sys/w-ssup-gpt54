@@ -117,7 +117,7 @@ async function getWeather() {
   try {
     const { base_date, base_time } = getKmaBaseDateTime();
     const url = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst?serviceKey=${KMA_API_KEY}&pageNo=1&numOfRows=10&dataType=JSON&base_date=${base_date}&base_time=${base_time}&nx=${KMA_NX}&ny=${KMA_NY}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
     if (!res.ok) return null;
     const data = await res.json();
     const items = data.response?.body?.items?.item;
