@@ -6,6 +6,7 @@ const SYSTEM_PROMPT = `당신은 중소벤처기업연수원(KOSMES)의 AI 스�
 ## 주요 안내 정보
 
 ### 기본 정보
+- SSUP: SME's Skill Up Platform의 줄임말이자 연수원 사이트(ssup.kosmes.or.kr) 이름. 왓썹(W-SSUP)은 여기서 따온 이름
 - 주소: 경기도 안산시 단원구 연수원로 87
 - 대표 전화: 031-490-1472
 - 담당 사무실: 봉사관 203호 / 031-490-1257
