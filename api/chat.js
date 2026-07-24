@@ -8,13 +8,13 @@ const SYSTEM_PROMPT = `당신은 중소벤처기업연수원(KOSMES)의 AI 스�
 ### 기본 정보
 - 주소: 경기도 안산시 단원구 연수원로 87
 - 대표 전화: 031-490-1472
-- 담당 사무실: 봉사관 206호 / 031-490-1294
+- 담당 사무실: 봉사관 203호 / 031-490-1257
 - 홈페이지: https://ssup.kosmes.or.kr
 
 ### 교통
 - 지하철: 4호선 초지역 1번출구 → 도보 15~20분 or 셔틀버스
 - 안산역에서 택시: 기본요금
-- 서해선 시우역은 셔틀 없음
+- 서해선 시우역 4번출구 → 도보 약 18분 (셔틀버스 없음)
 - 차량 5부제: 차량번호 끝자리 기준 / 월(1,6) 화(2,7) 수(3,8) 목(4,9) 금(5,0) / 토·일 없음
 - 주차장: 연수원 내 이용 가능 / 만차 시 후문 건너편 제2주차장
 
@@ -59,7 +59,7 @@ const SYSTEM_PROMPT = `당신은 중소벤처기업연수원(KOSMES)의 AI 스�
 - 지각: 교육 시작 후 10분 이후 QR 체크 시 / 조퇴: 교육 종료 10분 이전 QR 체크 시
 - 환급 과정 출석: 고용24 앱 → QR버튼 → 입실/퇴실 (하루 2회 필수)
 - 비환급 과정 출석: SSUP 홈페이지(모바일) → 출결 메뉴 → 입실/퇴실 버튼
-- QR 오류 시: 위치정보 켜기 → 그래도 안 되면 봉사관 206호 031-490-1294 / 출석입력요청대장 서명으로 대체
+- QR 오류 시: 위치정보 켜기 → 그래도 안 되면 봉사관 203호 031-490-1257 / 출석입력요청대장 서명으로 대체
 - 수료증: 수료 및 수납 완료 후 이메일 자동 발송 / 재발급: 031-490-1472
 
 ### 편의시설
@@ -82,13 +82,77 @@ const SYSTEM_PROMPT = `당신은 중소벤처기업연수원(KOSMES)의 AI 스�
 
 ## 답변 규칙
 - 한국어로 친절하게 답변
-- 모르는 내용은 "봉사관 206호 031-490-1294로 문의해주세요"라고 안내
+- 모르는 내용은 "봉사관 203호 031-490-1257로 문의해주세요"라고 안내
 - 답변 마지막에 "더 궁금한 점 있으시면 편하게 물어보세요 😊" 추가
 - 마크다운 형식 사용 가능`;
 
 const API_BASE_URL = process.env.MLAPI_BASE_URL || 'https://mlapi.run/abc-1234-xyz/v1';
 const API_KEY = process.env.MLAPI_API_KEY;
 const MODEL = 'openai/gpt-5.4';
+
+const KMA_API_KEY = process.env.KMA_API_KEY;
+const KMA_NX = 57;
+const KMA_NY = 121;
+const WEATHER_KEYWORDS = ['날씨', '기온', '온도', '우산', '비와요', '비 와', '눈와요', '눈 와', 'weather', 'temperature', 'umbrella', 'cuaca', '天気', '天氣', '天气', '气温', '氣溫'];
+const PTY_MAP = { '0': '맑음', '1': '비', '2': '비/눈', '3': '눈', '5': '빗방울', '6': '빗방울눈날림', '7': '눈날림' };
+
+function needsWeather(message) {
+  if (!KMA_API_KEY || !message) return false;
+  const lower = message.toLowerCase();
+  return WEATHER_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()));
+}
+
+function getKmaBaseDateTime() {
+  let t = Date.now() + 9 * 60 * 60 * 1000;
+  if (new Date(t).getUTCMinutes() < 40) t -= 60 * 60 * 1000;
+  const base = new Date(t);
+  const y = base.getUTCFullYear();
+  const m = String(base.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(base.getUTCDate()).padStart(2, '0');
+  const h = String(base.getUTCHours()).padStart(2, '0');
+  return { base_date: `${y}${m}${d}`, base_time: `${h}00` };
+}
+
+async function getWeather() {
+  try {
+    const { base_date, base_time } = getKmaBaseDateTime();
+    const url = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst?serviceKey=${KMA_API_KEY}&pageNo=1&numOfRows=10&dataType=JSON&base_date=${base_date}&base_time=${base_time}&nx=${KMA_NX}&ny=${KMA_NY}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const items = data.response?.body?.items?.item;
+    if (!items) return null;
+    const val = (cat) => items.find((i) => i.category === cat)?.obsrValue;
+    const temp = val('T1H');
+    const humidity = val('REH');
+    const rain1h = val('RN1');
+    const desc = PTY_MAP[val('PTY')] || '맑음';
+    return `현재 안산시(중소벤처기업연수원 인근) 기상청 실시간 관측 날씨: ${desc}, 기온 ${temp}°C, 습도 ${humidity}%${rain1h && rain1h !== '0' ? `, 1시간 강수량 ${rain1h}mm` : ''}. 이 실제 데이터를 바탕으로 답변하세요.`;
+  } catch {
+    return null;
+  }
+}
+
+const RESTAURANT_KEYWORDS = ['맛집', '식당', '밥집', '뭐먹', '뭘먹', '먹을만한', '맛있는', '회식', '먹거리', '술집', '카페추천'];
+
+function needsRestaurant(message) {
+  if (!message) return false;
+  const lower = message.toLowerCase();
+  return RESTAURANT_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()));
+}
+
+const RESTAURANT_INFO = `안산 지역 맛집 추천 목록 (연수생 지인추천 · 블루리본 기준, 역/지역별 정리). 이 데이터에서 질문 의도(위치, 메뉴 종류 등)에 맞는 곳을 몇 곳만 추려서 자연스럽게 추천하세요. 목록을 통째로 나열하지 마세요.
+
+일식: 니지스시(고잔~중앙 문화광장, 바테이블), 키무스시(중앙역, 바테이블), 스시일기(중앙역 로데오), 오이시초밥(선부역), 에비수(초밥)
+돈까스: 송호성돈카츠(중앙역 로데오), 카츠오모이(중앙역 로데오, 바테이블), 여우카츠(신안산대), 돈카츠석(고잔역/고잔~중앙)
+양식: 라쪼, 포크너, 투피안드피터, 파스타리안(중앙역), 볼로냐식당(바테이블), 그남자의이태리식당(중앙역)
+중식당: 오복당, 홍푸, 북경(안산시청), 란주짬뽕(고잔~중앙), 101돌판짜장(신안산대), 화련(안산시청) — 모두 고잔~중앙(문화광장) 권역
+한식/고기: 사계절참맛, 경복궁 안산(안산시청), 진대감(전골), 조선갈비(선부역), 미락식당(중앙역 로데오), 원조 게장정식(다문화거리)
+탕/찌개: 별망시래기(감자탕, 호수마을), 신강남동태찜탕·수지동태탕(선부역), 남기남부대찌개, 복덕집(부대찌개, 고잔역), 우사미(불고기·갈비탕, 호수마을), 은평감자탕(중앙역)
+면류: 이조칼국수(선부역), 로얄냉면집(라성호텔), 화정리막국수(물왕저수지), 해주옥(전골·칼국수)
+기타: 카레스프 호사식탁, 부페 호텔스퀘어 안산, 인디아팰리스(인도, 중앙역 로데오), 수라삼계탕(중앙역), 군산복집(복어, 시우역), 킹스턴브릿지(햄버거, 버스터미널), 포터블(카페, 고잔~중앙), 퍼멘트브레드(베이커리, 갈대습지), 메종드케이크
+
+※ 이 외에도 안산시청 인증 맛집 150여 곳 데이터가 있으니, 사용자가 "더 알려줘" 또는 특정 메뉴/지역을 더 구체적으로 물으면 "안산시 인증 맛집 목록도 있으니 원하시는 메뉴나 지역을 말씀해 주시면 더 찾아드릴게요"라고 안내하세요.`;
 
 function buildUserMessage(message, image) {
   if (!image?.data) {
@@ -179,6 +243,17 @@ export default async function handler(req) {
       ...(history || []),
       buildUserMessage(message, image)
     ];
+
+    if (needsWeather(message)) {
+      const weatherInfo = await getWeather();
+      if (weatherInfo) {
+        messages.splice(messages.length - 1, 0, { role: 'system', content: weatherInfo });
+      }
+    }
+
+    if (needsRestaurant(message)) {
+      messages.splice(messages.length - 1, 0, { role: 'system', content: RESTAURANT_INFO });
+    }
 
     const upstream = await fetch(`${API_BASE_URL}/chat/completions`, {
       method: 'POST',
