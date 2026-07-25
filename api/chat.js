@@ -114,23 +114,31 @@ function getKmaBaseDateTime() {
   return { base_date: `${y}${m}${d}`, base_time: `${h}00` };
 }
 
+let weatherCache = { text: null, fetchedAt: 0 };
+const WEATHER_CACHE_MS = 10 * 60 * 1000;
+
 async function getWeather() {
+  if (weatherCache.text && Date.now() - weatherCache.fetchedAt < WEATHER_CACHE_MS) {
+    return weatherCache.text;
+  }
   try {
     const { base_date, base_time } = getKmaBaseDateTime();
     const url = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst?serviceKey=${KMA_API_KEY}&pageNo=1&numOfRows=10&dataType=JSON&base_date=${base_date}&base_time=${base_time}&nx=${KMA_NX}&ny=${KMA_NY}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(4500) });
-    if (!res.ok) return null;
+    const res = await fetch(url, { signal: AbortSignal.timeout(6500) });
+    if (!res.ok) return weatherCache.text || null;
     const data = await res.json();
     const items = data.response?.body?.items?.item;
-    if (!items) return null;
+    if (!items) return weatherCache.text || null;
     const val = (cat) => items.find((i) => i.category === cat)?.obsrValue;
     const temp = val('T1H');
     const humidity = val('REH');
     const rain1h = val('RN1');
     const desc = PTY_MAP[val('PTY')] || '맑음';
-    return `현재 안산시(중소벤처기업연수원 인근) 기상청 실시간 관측 날씨: ${desc}, 기온 ${temp}°C, 습도 ${humidity}%${rain1h && rain1h !== '0' ? `, 1시간 강수량 ${rain1h}mm` : ''}. 이 실제 데이터를 바탕으로 답변하세요.`;
+    const text = `현재 안산시(중소벤처기업연수원 인근) 기상청 실시간 관측 날씨: ${desc}, 기온 ${temp}°C, 습도 ${humidity}%${rain1h && rain1h !== '0' ? `, 1시간 강수량 ${rain1h}mm` : ''}. 이 실제 데이터를 바탕으로 답변하세요.`;
+    weatherCache = { text, fetchedAt: Date.now() };
+    return text;
   } catch {
-    return null;
+    return weatherCache.text || null;
   }
 }
 
