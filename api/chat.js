@@ -67,7 +67,7 @@ const SYSTEM_PROMPT = `당신은 중소벤처기업연수원(KOSMES)의 AI 스�
 - 인화2관: 헬스장, 탁구장, 만화카페
 - 운동장·다목적구장 무료 이용
 - 도서실, PC방, 플스방
-- 강의실: 창의관 1~4층 (스마트실습실, 세미나실 포함)
+- 강의실: 봉사관(일반강의실·PC실), 실험동(실험·실습 공간), 실습동(스마트공장 배움터 등 실습 장비) 등 여러 건물에 분산
 
 ### 건강 및 응급
 - 발열·호흡기 증상 시 즉시 담당자에게 연락
@@ -94,13 +94,21 @@ const MODEL = 'openai/gpt-5.4';
 const KMA_API_KEY = process.env.KMA_API_KEY;
 const KMA_NX = 57;
 const KMA_NY = 121;
-const WEATHER_KEYWORDS = ['날씨', '기온', '온도', '우산', '비와요', '비 와', '눈와요', '눈 와', 'weather', 'temperature', 'umbrella', 'cuaca', '天気', '天氣', '天气', '气温', '氣溫'];
+const WEATHER_KEYWORDS = ['날씨', '기온', '온도', '우산', '비와요', '비와', '비올', '눈와요', '눈와', '눈올', '더워', '덥나', '추워', '쌀쌀', '흐려', '흐림', '맑나', '체감온도', '자외선', '미세먼지', '황사', 'weather', 'temperature', 'umbrella', 'cuaca', '天気', '天氣', '天气', '气温', '氣溫'];
 const PTY_MAP = { '0': '맑음', '1': '비', '2': '비/눈', '3': '눈', '5': '빗방울', '6': '빗방울눈날림', '7': '눈날림' };
+
+function matchesKeywords(message, keywords) {
+  const lower = message.toLowerCase();
+  const noSpace = lower.replace(/\s+/g, '');
+  return keywords.some((kw) => {
+    const k = kw.toLowerCase();
+    return lower.includes(k) || noSpace.includes(k.replace(/\s+/g, ''));
+  });
+}
 
 function needsWeather(message) {
   if (!KMA_API_KEY || !message) return false;
-  const lower = message.toLowerCase();
-  return WEATHER_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()));
+  return matchesKeywords(message, WEATHER_KEYWORDS);
 }
 
 function getKmaBaseDateTime() {
@@ -142,12 +150,11 @@ async function getWeather() {
   }
 }
 
-const RESTAURANT_KEYWORDS = ['맛집', '식당', '밥집', '뭐먹', '뭘먹', '먹을만한', '맛있는', '회식', '먹거리', '술집', '카페추천'];
+const RESTAURANT_KEYWORDS = ['맛집', '식당', '밥집', '뭐먹', '뭘먹', '먹을만한', '맛있는', '회식', '먹거리', '술집', '카페추천', '카페 추천', '카페어디', '카페 어디'];
 
 function needsRestaurant(message) {
   if (!message) return false;
-  const lower = message.toLowerCase();
-  return RESTAURANT_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()));
+  return matchesKeywords(message, RESTAURANT_KEYWORDS);
 }
 
 const RESTAURANT_INFO = `안산 지역 맛집 추천 목록 (연수생 지인추천 · 블루리본 기준, 역/지역별 정리). 이 데이터에서 질문 의도(위치, 메뉴 종류 등)에 맞는 곳을 몇 곳만 추려서 자연스럽게 추천하세요. 목록을 통째로 나열하지 마세요.
