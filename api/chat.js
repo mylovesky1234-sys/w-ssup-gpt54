@@ -288,6 +288,13 @@ export default async function handler(req) {
   try {
     const { message, history, simple, image } = await req.json();
 
+    if (!message && !image?.data) {
+      return new Response(JSON.stringify({ error: 'message가 비어 있습니다.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     const messages = [
       { role: 'system', content: SYSTEM_PROMPT },
       ...(history || []),
