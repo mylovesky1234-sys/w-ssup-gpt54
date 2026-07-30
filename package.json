@@ -1,0 +1,8 @@
+{
+  "name": "w-ssup-gpt54",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@vercel/functions": "*"
+  }
+}
