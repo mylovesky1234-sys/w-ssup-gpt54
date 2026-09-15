@@ -121,9 +121,8 @@ const SYSTEM_PROMPT = `당신은 중소벤처기업연수원(KOSMES)의 AI 스�
 - 답변 마지막에 "더 궁금한 점 있으시면 편하게 물어보세요 😊" 추가
 - 마크다운 형식 사용 가능`;
 
-const API_BASE_URL = process.env.MLAPI_BASE_URL || 'https://mlapi.run/abc-1234-xyz/v1';
-const API_KEY = process.env.MLAPI_API_KEY;
-const MODEL = 'openai/gpt-5.4';
+const API_KEY = process.env.ANTHROPIC_API_KEY;
+const MODEL = 'claude-haiku-4-5-20251001';
 
 const KMA_API_KEY = process.env.KMA_API_KEY;
 const KMA_NX = 57;
@@ -212,65 +211,17 @@ function buildUserMessage(message, image) {
   return {
     role: 'user',
     content: [
-      { type: 'text', text: message },
       {
-        type: 'image_url',
-        image_url: {
-          url: `data:${image.media_type || 'image/jpeg'};base64,${image.data}`
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: image.media_type || 'image/jpeg',
+          data: image.data
         }
-      }
+      },
+      { type: 'text', text: message }
     ]
   };
-}
-
-function transformOpenAIStreamToAnthropic(upstreamBody) {
-  const reader = upstreamBody.getReader();
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-
-  return new ReadableStream({
-    async start(controller) {
-      let buffer = '';
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed.startsWith('data:')) continue;
-
-            const data = trimmed.slice(5).trim();
-            if (data === '[DONE]') continue;
-
-            try {
-              const json = JSON.parse(data);
-              const text = json.choices?.[0]?.delta?.content;
-              if (!text) continue;
-
-              const anthropicEvent = JSON.stringify({
-                type: 'content_block_delta',
-                delta: { type: 'text_delta', text }
-              });
-              controller.enqueue(encoder.encode(`data: ${anthropicEvent}\n\n`));
-            } catch {
-              // skip malformed chunks
-            }
-          }
-        }
-      } catch (error) {
-        controller.error(error);
-        return;
-      }
-
-      controller.close();
-    }
-  });
 }
 
 export default async function handler(req) {
@@ -296,32 +247,33 @@ export default async function handler(req) {
     }
 
     const messages = [
-      { role: 'system', content: SYSTEM_PROMPT },
       ...(history || []),
       buildUserMessage(message, image)
     ];
 
+    let systemPrompt = SYSTEM_PROMPT;
+
     if (needsWeather(message)) {
       const weatherInfo = await getWeather();
-      if (weatherInfo) {
-        messages.splice(messages.length - 1, 0, { role: 'system', content: weatherInfo });
-      }
+      if (weatherInfo) systemPrompt += `\n\n${weatherInfo}`;
     }
 
     if (needsRestaurant(message)) {
-      messages.splice(messages.length - 1, 0, { role: 'system', content: RESTAURANT_INFO });
+      systemPrompt += `\n\n${RESTAURANT_INFO}`;
     }
 
-    const upstream = await fetch(`${API_BASE_URL}/chat/completions`, {
+    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${API_KEY}`
+        'x-api-key': API_KEY,
+        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
         model: MODEL,
-        max_completion_tokens: simple ? 300 : 768,
+        max_tokens: simple ? 300 : 768,
         stream: true,
+        system: systemPrompt,
         messages
       })
     });
@@ -341,7 +293,7 @@ export default async function handler(req) {
       });
     }
 
-    return new Response(transformOpenAIStreamToAnthropic(upstream.body), {
+    return new Response(upstream.body, {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
