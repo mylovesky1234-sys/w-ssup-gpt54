@@ -40,7 +40,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--white);}
 .app{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden;background:var(--surf);padding-bottom:calc(62px + env(safe-area-inset-bottom,0px));}
 
 /* Header */
-.hdr{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border);flex-shrink:0;background:#fff;box-shadow:0 1px 0 var(--border);}
+.hdr{position:relative;display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border);flex-shrink:0;background:#fff;box-shadow:0 1px 0 var(--border);}
 .kosme{display:flex;align-items:center;gap:5px;background:var(--g-blue);border-radius:10px;padding:5px 10px;flex-shrink:0;}
 .kosme svg{width:14px;height:14px;}
 .kosme span{font-family:'Outfit',sans-serif;font-size:17px;font-weight:800;color:#fff;letter-spacing:.5px;}
@@ -886,6 +886,7 @@ details[open] .faq-arr{transform:rotate(180deg);}
 <body>
 <div class="splash" id="splash">
   <div class="splash-bg"></div>
+  <div style="position:absolute;top:8px;right:8px;font-size:10px;font-weight:600;color:var(--t2);opacity:.7;letter-spacing:.2px;pointer-events:none;white-space:nowrap;">by Seongsu Park</div>
   <div class="splash-inner">
   <!-- 브랜드 -->
   <div id="splash-brand" style="position:relative;z-index:1;text-align:center;margin-bottom:32px;">
@@ -958,6 +959,7 @@ details[open] .faq-arr{transform:rotate(180deg);}
       </div>
     </div>
     <div class="live"><div class="live-dot"></div><span>LIVE</span></div>
+    <div style="position:absolute;right:6px;bottom:2px;font-size:9px;font-weight:600;color:var(--t2);opacity:.7;letter-spacing:.2px;pointer-events:none;white-space:nowrap;">by Seongsu Park</div>
   </div>
 
   <!-- 탭 -->
@@ -4336,6 +4338,5 @@ function showFloor(bld,fl,btn){
   }
 })();
 </script>
-<div style="position:fixed;right:10px;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:99999;font-size:11px;font-weight:600;color:var(--t1);letter-spacing:.2px;pointer-events:none;background:rgba(255,255,255,.75);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);padding:3px 8px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);">by Seongsu Park</div>
 </body>
 </html>
