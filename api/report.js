@@ -1,7 +1,7 @@
 export const config = { runtime: 'edge' };
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const REPORT_TO_EMAIL = 'mylovesky3@naver.com';
+const REPORT_TO_EMAIL = 'mylovesky1234@gmail.com';
 
 export default async function handler(req) {
   if (req.method !== 'POST') {
