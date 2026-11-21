@@ -124,6 +124,100 @@ const SYSTEM_PROMPT = `당신은 중소벤처기업연수원(KOSMES)의 AI 스�
 const API_KEY = process.env.ANTHROPIC_API_KEY;
 const MODEL = 'claude-haiku-4-5-20251001';
 
+// 분기형 워크플로우: WORKFLOW_MODE=branch 일 때만 동작. 그 외에는 기존 방식(지식 전체 주입) 그대로.
+const WORKFLOW_ENABLED = process.env.WORKFLOW_MODE === 'branch';
+const CLASSIFY_TIMEOUT_MS = 5000;
+
+const CATEGORY_SECTIONS = {
+  '신청·취소': ['연수 신청 및 취소', '과정 신청/취소/변경'],
+  '결제·환불': ['연수비 납부', '결제/환불/세금계산서'],
+  '고용보험 환급': ['고용보험 환급', '과정 신청/취소/변경', '연수비 납부'],
+  '출석·수료': ['출석 및 수료', '출석/QR 보완', '수료증'],
+  '회원·기업정보': ['기업/회원 정보', '수료증'],
+  '이러닝': ['온라인연수(이러닝) 이용 오류', '출석/QR 보완'],
+  '교통': ['교통', '셔틀버스 시간표'],
+  '숙박·생활': ['식사 및 숙소', '편의시설', '건강 및 응급'],
+  '과정·일정': ['연수 신청 및 취소', '분야별 담당자'],
+  '연락처': ['분야별 담당자'],
+  '범위 밖': []
+};
+const ALWAYS_SECTIONS = ['기본 정보'];
+const CATEGORIES = Object.keys(CATEGORY_SECTIONS);
+
+const CLASSIFY_PROMPT = `당신은 중소벤처기업연수원 챗봇의 질문 분류기입니다.
+사용자 질문을 아래 분야 중 가장 알맞은 하나로 분류하세요. 두 분야에 걸친 질문이면 쉼표로 구분해 최대 2개까지 쓰세요.
+분야: ${CATEGORIES.join(' / ')}
+분야 이름만 출력하고 다른 말은 쓰지 마세요. 이전 대화가 있으면 맥락을 참고하되 마지막 질문을 분류하세요.`;
+
+const TEMPLATE_RULES = `
+## 답변 형식
+- 질문에 대한 핵심 답을 첫 문장에 먼저 제시
+- 절차 설명은 최대 3항목, 전체 5문장 이내 (시간표·목록처럼 항목 나열이 필요한 경우는 예외)
+- 번호·날짜·금액·전화번호는 위 안내 정보의 표기를 그대로 사용
+- 위 안내 정보에 없는 내용은 추측하지 말고 문의처를 안내`;
+
+function splitPrompt(prompt) {
+  const rulesIdx = prompt.indexOf('## 답변 규칙');
+  const rules = prompt.slice(rulesIdx);
+  const rest = prompt.slice(0, rulesIdx);
+  const firstIdx = rest.indexOf('## 주요 안내 정보');
+  const head = rest.slice(0, firstIdx).trim();
+  const sections = {};
+  for (const part of rest.slice(firstIdx).split(/\n(?=### )/)) {
+    const m = part.match(/^###\s+(.+)/);
+    if (m) sections[m[1].trim()] = part.replace(/\n##\s[\s\S]*$/, '').trim();
+  }
+  return { head, sections, rules };
+}
+
+const PROMPT_PARTS = splitPrompt(SYSTEM_PROMPT);
+
+function buildWorkflowPrompt(categories) {
+  const titles = new Set(ALWAYS_SECTIONS);
+  for (const c of categories) (CATEGORY_SECTIONS[c] || []).forEach((t) => titles.add(t));
+  const body = [...titles].map((t) => PROMPT_PARTS.sections[t]).filter(Boolean).join('\n\n');
+  return `${PROMPT_PARTS.head}\n\n## 주요 안내 정보\n\n${body}\n\n${PROMPT_PARTS.rules}\n${TEMPLATE_RULES}`;
+}
+
+function clip(text, n) {
+  const s = typeof text === 'string' ? text : '';
+  return s.length > n ? s.slice(0, n) + '…' : s;
+}
+
+// 실패하거나 알 수 없는 결과면 null 을 돌려주어 기존 방식(전체 프롬프트)으로 되돌아간다.
+async function classifyQuestion(message, history) {
+  try {
+    const recent = (history || [])
+      .slice(-2)
+      .filter((h) => typeof h?.content === 'string')
+      .map((h) => `${h.role === 'user' ? '사용자' : '챗봇'}: ${clip(h.content, 300)}`)
+      .join('\n');
+    const content = `${recent ? `이전 대화:\n${recent}\n\n` : ''}질문: ${clip(message, 500)}`;
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 30,
+        system: CLASSIFY_PROMPT,
+        messages: [{ role: 'user', content }]
+      }),
+      signal: AbortSignal.timeout(CLASSIFY_TIMEOUT_MS)
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    const found = CATEGORIES.filter((c) => text.includes(c));
+    return found.length ? found.slice(0, 2) : null;
+  } catch {
+    return null;
+  }
+}
+
 const KMA_API_KEY = process.env.KMA_API_KEY;
 const KMA_NX = 57;
 const KMA_NY = 121;
@@ -252,6 +346,15 @@ export default async function handler(req) {
     ];
 
     let systemPrompt = SYSTEM_PROMPT;
+    let workflowCategory = '';
+
+    if (WORKFLOW_ENABLED && !simple && !image?.data && message) {
+      const categories = await classifyQuestion(message, history);
+      if (categories) {
+        systemPrompt = buildWorkflowPrompt(categories);
+        workflowCategory = categories.join(',');
+      }
+    }
 
     if (needsWeather(message)) {
       const weatherInfo = await getWeather();
@@ -297,7 +400,8 @@ export default async function handler(req) {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'X-Accel-Buffering': 'no'
+        'X-Accel-Buffering': 'no',
+        'X-Workflow-Category': workflowCategory ? encodeURIComponent(workflowCategory) : 'full'
       }
     });
   } catch {
