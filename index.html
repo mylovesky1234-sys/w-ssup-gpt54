@@ -881,6 +881,8 @@ details[open] .faq-arr{transform:rotate(180deg);}
 .fp-img-wrap{width:100%;overflow:hidden;}
 .fp-img-wrap img{width:100%;display:block;}
 .fp-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 4px;line-height:1;}</style>
+<script src="/courses-2026.js"></script>
+<script src="/pick-engine.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
@@ -1209,20 +1211,9 @@ details[open] .faq-arr{transform:rotate(180deg);}
         </div>
         <div class="fblock">
           <div>
-            <div class="flbl" data-i18n="pick-lbl-ind">🏭 업종</div>
-            <select class="fsel" id="ind2"><option value="">선택하세요</option><option value="IT·소프트웨어" selected>IT·소프트웨어</option><option value="제조업">제조업</option><option value="유통·물류">유통·물류</option><option value="서비스업">서비스업</option><option value="건설·부동산">건설·부동산</option><option value="바이오·헬스케어">바이오·헬스케어</option><option value="식품·외식">식품·외식</option><option value="금융·핀테크">금융·핀테크</option><option value="기타">기타</option></select>
-          </div>
-          <div>
-            <div class="flbl" data-i18n="pick-lbl-job">💼 직무</div>
-            <select class="fsel" id="job2"><option value="">선택하세요</option><option value="경영·전략">경영·전략</option><option value="영업·마케팅">영업·마케팅</option><option value="HR·교육">HR·교육</option><option value="회계·재무">회계·재무</option><option value="연구·개발(R&D)">연구·개발(R&D)</option><option value="생산·품질">생산·품질</option><option value="IT·소프트웨어" selected>IT·소프트웨어</option><option value="계층·리더십">계층·리더십</option><option value="기타">기타</option></select>
-          </div>
-          <div>
-            <div class="flbl" data-i18n="pick-lbl-yr">📅 연차</div>
-            <div class="yrbox">
-              <select id="yrs2" class="fsel" style="flex:1;">
-                <option value="1">1년차</option><option value="2">2년차</option><option value="3">3년차</option><option value="4">4년차</option><option value="5" selected>5년차</option><option value="6">6년차</option><option value="7">7년차</option><option value="8">8년차</option><option value="9">9년차</option><option value="10">10년차</option><option value="11">11년차</option><option value="12">12년차</option><option value="13">13년차</option><option value="14">14년차</option><option value="15">15년차</option><option value="16">16년차</option><option value="17">17년차</option><option value="18">18년차</option><option value="19">19년차</option><option value="20">20년차 이상</option>
-              </select>
-            </div>
+            <div class="flbl">👤 가상 연수생</div>
+            <select class="fsel" id="vl"><option value="">선택하세요</option></select>
+            <div style="font-size:15px;color:var(--t2);margin-top:6px;line-height:1.5;">제조업 연수생을 가정해 직무별로 만든 가상 수강이력입니다. 이미 들은 2개 과정과 비슷한 분야의 다음 과정을 추천합니다.</div>
           </div>
           <button class="pbtn" data-i18n="pick-btn2" onclick="doPick2()">✦ 맞춤 강좌 추천받기</button>
         </div>
@@ -2114,17 +2105,17 @@ function getSchedLoc(code){
   });
 }
 
-function ssupPickCards(courses, resEl, intro){
+function ssupPickCards(courses, resEl, intro, pcts, note){
   var colors=[['#4C6EF5','#7048E8'],['#7048E8','#E64980'],['#0CA678','#15AABF']];
-  var matchPcts=[97,93,89];
+  var matchPcts=pcts||[97,93,89];
   var header='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 12px;background:var(--blue-lt);border-radius:12px;border:1px solid rgba(76,110,245,.2);">'
     +'<span style="font-size:20px;">🔗</span>'
-    +'<div><div style="font-size:17px;font-weight:800;color:var(--blue);">'+CL('pickLinked')+'</div>'
-    +'<div style="font-size:16px;color:var(--t2);">'+CL('pickLinkedSub')+'</div></div>'
-    +'<div style="margin-left:auto;font-size:13px;font-weight:700;color:#0CA678;background:#E6FCF5;padding:3px 8px;border-radius:20px;">'+CL('pickConnected')+'</div>'
+    +'<div><div style="font-size:17px;font-weight:800;color:var(--blue);">'+(note?'2026 연간일정 기반 추천':CL('pickLinked'))+'</div>'
+    +'<div style="font-size:16px;color:var(--t2);">'+(note?'연수원 연간일정표 · 태그는 자동 부여 초안':CL('pickLinkedSub'))+'</div></div>'
+    +'<div style="margin-left:auto;font-size:13px;font-weight:700;color:#0CA678;background:#E6FCF5;padding:3px 8px;border-radius:20px;">'+(note?'일정 반영':CL('pickConnected'))+'</div>'
     +'</div>';
   var footer='<a href="https://ssup.kosmes.or.kr" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:var(--surf);border:1.5px solid var(--border);border-radius:14px;font-size:17px;font-weight:800;color:var(--blue);text-decoration:none;margin-top:4px;">'+CL('pickViewAll')+'</a>'
-    +'<div style="font-size:15px;color:var(--t2);text-align:center;padding:8px 4px 0;">'+CL('pickDemoNote')+'</div>';
+    +'<div style="font-size:15px;color:var(--t2);text-align:center;padding:8px 4px 0;">'+(note||CL('pickDemoNote'))+'</div>';
   var cardId='spc'+Date.now();
   resEl.innerHTML = header + courses.slice(0,3).map(function(c,i){
     var g='linear-gradient(135deg,'+colors[i][0]+','+colors[i][1]+')';
@@ -2143,7 +2134,7 @@ function ssupPickCards(courses, resEl, intro){
         +'<div style="font-size:18px;font-weight:800;color:#fff;line-height:1.4;">'+((COURSE_TITLE_TR[c.code]&&COURSE_TITLE_TR[c.code][appLang])||c.title)+'</div>'
         +'<div style="display:flex;gap:8px;margin-top:6px;">'
           +'<span style="background:rgba(255,255,255,.2);color:#fff;font-size:15px;font-weight:700;padding:2px 7px;border-radius:6px;">📅 '+c.days+CL('days')+'</span>'
-          +'<span style="background:'+(c.fee==='환급'?'rgba(12,166,120,.35)':'rgba(255,180,0,.35)')+';color:#fff;font-size:15px;font-weight:700;padding:2px 7px;border-radius:6px;">'+(c.fee==='환급'?CL('refund'):CL('nofund'))+'</span>'
+          +(c.fee?('<span style="background:'+(c.fee==='환급'?'rgba(12,166,120,.35)':'rgba(255,180,0,.35)')+';color:#fff;font-size:15px;font-weight:700;padding:2px 7px;border-radius:6px;">'+(c.fee==='환급'?CL('refund'):CL('nofund'))+'</span>'):'')
         +'</div>'
       +'</div>'
       +'<div style="padding:12px 14px;">'
@@ -2239,24 +2230,63 @@ function pickFromDB(tags, count){
   return result;
 }
 
+var ANNUAL_NOTE='※ 2026년 연간일정 기준 추천입니다. 태그는 과정명으로 자동 부여한 초안이며, 정확한 일정은 SSUP 홈페이지를 확인해주세요.';
+
+function annualCards(items,resEl,extraHtml,matchLabel){
+  if(!items.length){
+    resEl.innerHTML=(extraHtml||'')+'<div style="padding:18px 14px;text-align:center;color:var(--t2);font-size:17px;line-height:1.6;">조건에 맞는 과정을 찾지 못했어요.<br>직무를 선택하거나 요청을 조금 더 구체적으로 적어 주세요.</div>';
+    return;
+  }
+  var courses=items.map(function(x){
+    var c=x.course,nx=SSUPPick.nextSession(c);
+    return {code:c.code,title:c.title,days:c.days||Math.max(1,Math.ceil(c.hoursNum/8)),fee:'',tags:c.tags,
+      reason:(matchLabel||'일치 태그')+': '+x.matched.join(', '),
+      effect:'연수시간 '+c.hoursNum+'시간 · '+c.duration+' · 2026년 개강 '+SSUPPick.monthsLabel(c),
+      apply:nx?nx.label:'올해 남은 일정 없음',badge:''};
+  });
+  ssupPickCards(courses,resEl,'',items.map(function(x){return Math.max(1,Math.min(100,x.fit));}),ANNUAL_NOTE);
+  if(extraHtml)resEl.insertAdjacentHTML('afterbegin',extraHtml);
+}
+
+function condBox(html){
+  return '<div style="margin-bottom:10px;padding:10px 12px;background:var(--surf);border:1px solid var(--border);border-radius:12px;font-size:16px;color:var(--t1);line-height:1.6;">'+html+'</div>';
+}
+
 function doPick(){
   var ind=document.getElementById('ind').value;
   var job=document.getElementById('job').value;
   if(!ind||!job){alert(CL('pickSelectAlert'));return;}
   var res=document.getElementById('pres');
   ssupLoading(res,[CL('pickLoad1'),CL('pickLoad2'),CL('pickLoadDone')],900,function(){
-    var picks=pickFromDB([ind,job],3);
-    ssupPickCards(picks,res);
+    var jobs=job==='기타'?[]:[job];
+    var items=SSUPPick.recommendByTags(SSUP_ANNUAL,{industry:ind,jobs:jobs});
+    annualCards(items,res,condBox('🔎 선택한 조건 — 업종: <b>'+ind+'</b> · 직무: <b>'+job+'</b>'));
   });
 }
 
-function doPick2(){
-  var ind=document.getElementById('ind2').value;
-  var job=document.getElementById('job2').value;
-  var res=document.getElementById('pres2');
-  ssupLoading(res,[CL('pickLoad1'),CL('pickLoad2'),CL('pickLoadDone')],900,function(){
-    var picks=pickFromDB([ind,job],3);
-    ssupPickCards(picks,res);
+var NL_JOB_RULES=[
+  ['경영·전략',/경영|전략|기획|CEO|대표|임원/],['영업·마케팅',/영업|마케팅|광고|홍보/],['HR·교육',/인사|HR|교육담당|총무/],
+  ['회계·재무',/회계|재무|세무|비용|원가/],['연구·개발(R&D)',/연구|개발|R&D|설계|해석/],['생산·품질',/품질|생산|공정|불량/],
+  ['IT·소프트웨어',/\bIT\b|AI|인공지능|데이터|소프트웨어|프로그램|코딩|파이썬|엑셀/],['계층·리더십',/팀장|관리자|리더|신임/],
+  ['설비·자동화',/PLC|자동화|설비|로봇|유압|공압/],['스마트공장·제조AI',/스마트공장|스마트제조|MES|제조AI/],
+  ['안전·환경',/안전|환경|탄소|ESG/],['구매·물류',/구매|물류|자재|재고/],['전기·전자',/전기|전자|반도체|회로/],['기계·금형',/금형|기계|용접|사출/]
+];
+var NL_IND_RULES=[['제조업',/제조|공장|생산직|금형|부품/],['IT·소프트웨어',/\bIT\b|소프트웨어|개발자|앱 |플랫폼/],['유통·물류',/유통|물류|도소매/],['건설·부동산',/건설|부동산|시공/],['서비스업',/서비스|외식|카페|병원|학원/]];
+
+function nlExtractFallback(text){
+  var jobs=NL_JOB_RULES.filter(function(r){return r[1].test(text);}).map(function(r){return r[0];});
+  var ind=NL_IND_RULES.filter(function(r){return r[1].test(text);}).map(function(r){return r[0];})[0]||null;
+  return {industry:ind,jobs:jobs};
+}
+
+// LLM 으로 업종·직무를 추출한다. 실패하거나 시간이 지나면 키워드 규칙으로 대신한다.
+function nlExtract(text){
+  var req=fetch('/api/extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(j){return j&&j.jobs&&j.jobs.length?j:null;});
+  var timeout=new Promise(function(r){setTimeout(function(){r(null);},7000);});
+  return Promise.race([req,timeout]).catch(function(){return null;}).then(function(j){
+    return j?{industry:j.industry||null,jobs:j.jobs,source:'AI'}:Object.assign(nlExtractFallback(text),{source:'키워드'});
   });
 }
 
@@ -2264,19 +2294,47 @@ function doNLPick(){
   var input=document.getElementById('nl-input').value.trim();
   if(!input){alert(CL('pickNlAlert'));return;}
   var res=document.getElementById('nl-result');
-  var kw=input;
-  var tags=[];
-  if(/제조|공장|생산|품질|PLC|로봇|자동화/.test(kw)) tags.push('제조업','스마트공장');
-  if(/AI|인공지능|데이터|디지털/.test(kw)) tags.push('스마트공장','IT·소프트웨어','제조AI');
-  if(/경영|전략|CEO|임원|대표/.test(kw)) tags.push('경영·전략','CEO·임원');
-  if(/마케팅|영업|광고|홍보/.test(kw)) tags.push('영업·마케팅');
-  if(/회계|세무|재무|비용/.test(kw)) tags.push('회계·재무');
-  if(/리더|관리자|팀장|HRD|HR/.test(kw)) tags.push('계층·리더십','HR·교육');
-  if(/IT|소프트웨어|보안|프로그램/.test(kw)) tags.push('IT·소프트웨어');
-  if(tags.length===0) tags=['제조업','경영·전략','IT·소프트웨어'];
+  var pending=nlExtract(input);
   ssupLoading(res,[CL('pickNlLoad1'),CL('pickLoad2'),CL('pickLoadDone')],1200,function(){
-    var picks=pickFromDB(tags,3);
-    ssupPickCards(picks,res);
+    pending.then(function(cond){
+      var items=SSUPPick.recommendByTags(SSUP_ANNUAL,{industry:cond.industry,jobs:cond.jobs});
+      annualCards(items,res,condBox('🔎 인식한 조건('+cond.source+') — 업종: <b>'+(cond.industry||'미지정')+'</b> · 직무: <b>'+(cond.jobs.join(', ')||'미지정')+'</b>'));
+    });
+  });
+}
+
+var VLEARNERS=null;
+function vlearners(){
+  if(!VLEARNERS)VLEARNERS=SSUPPick.makeVirtualLearners(SSUP_ANNUAL,SSUP_JOB_TAGS,18,2026);
+  return VLEARNERS;
+}
+function courseByCode(code){return SSUP_ANNUAL.filter(function(c){return c.code===code;})[0];}
+function initVirtualLearners(){
+  var sel=document.getElementById('vl');
+  if(!sel||sel.options.length>1||typeof SSUPPick==='undefined')return;
+  vlearners().forEach(function(l){
+    var o=document.createElement('option');
+    o.value=l.id;o.textContent='가상 연수생 '+l.id+' · '+l.job;
+    sel.appendChild(o);
+  });
+}
+document.addEventListener('DOMContentLoaded',initVirtualLearners);
+
+function doPick2(){
+  initVirtualLearners();
+  var id=document.getElementById('vl').value;
+  var l=vlearners().filter(function(x){return String(x.id)===id;})[0];
+  if(!l){alert('가상 연수생을 선택해 주세요.');return;}
+  var res=document.getElementById('pres2');
+  ssupLoading(res,[CL('pickLoad1'),CL('pickLoad2'),CL('pickLoadDone')],900,function(){
+    var items=SSUPPick.recommendByHistory(SSUP_ANNUAL,l.history,{industry:l.industry});
+    var top5=SSUPPick.recommendByHistory(SSUP_ANNUAL,l.history,{industry:l.industry,n:5,upcomingOnly:false});
+    var hidden=courseByCode(l.hidden);
+    var hit=top5.some(function(x){return x.course.code===l.hidden;});
+    var taken=l.history.map(function(c){return '· '+courseByCode(c).title;}).join('<br>');
+    var box=condBox('📚 <b>수강 이력</b> (직무: '+l.job+')<br>'+taken
+      +'<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);font-size:15px;color:var(--t2);">🎯 검증: 숨겨둔 과정 「'+hidden.title+'」이 전체 일정 기준 상위 5개 추천에 '+(hit?'<b style="color:#0CA678;">포함됩니다</b>':'<b>포함되지 않습니다</b>')+'.</div>');
+    annualCards(items,res,box,'들은 과정과 겹치는 분야');
   });
 }
 
