@@ -350,7 +350,8 @@ export default async function handler(req) {
 
     if (WORKFLOW_ENABLED && !simple && !image?.data && message) {
       const categories = await classifyQuestion(message, history);
-      if (categories) {
+      // 범위 밖으로 분류된 질문은 분류가 틀렸을 수 있으므로 지식 전체를 주는 기존 방식으로 답한다.
+      if (categories && !categories.includes('범위 밖')) {
         systemPrompt = buildWorkflowPrompt(categories);
         workflowCategory = categories.join(',');
       }
