@@ -2143,7 +2143,7 @@ function ssupPickCards(courses, resEl, intro, pcts, note){
           +'<div style="font-size:17px;color:var(--t1);line-height:1.5;">'+c.reason+'</div>'
         +'</div>'
         +'<div style="display:flex;gap:8px;margin-bottom:12px;">'
-          +'<div style="flex-shrink:0;font-size:16px;font-weight:700;color:#0CA678;background:var(--teal-lt);padding:2px 7px;border-radius:6px;white-space:nowrap;">'+CL('effect')+'</div>'
+          +'<div style="flex-shrink:0;font-size:16px;font-weight:700;color:#0CA678;background:var(--teal-lt);padding:2px 7px;border-radius:6px;white-space:nowrap;">'+(note?'과정 정보':CL('effect'))+'</div>'
           +'<div style="font-size:17px;color:var(--t1);line-height:1.5;">'+c.effect+'</div>'
         +'</div>'
         +(c.sched?'<div id="sched'+cardId+i+'" style="display:none;margin-bottom:10px;border-radius:12px;overflow:hidden;border:1px solid var(--border);">'
