@@ -3749,10 +3749,12 @@ function getWifiCard(){
 }
 function getMealCard(){
   const days=['일','월','화','수','목','금','토'];
-  const wd=new Date().getDay();
+  const today=new Date().getDay();
+  const weekend=today===0||today===6;
+  const wd=weekend?1:today;
   const md=MEAL_DATA[wd]||MEAL_DATA[1];
   const meals=[['🌅','조식','07:30~09:00',md.b],['☀️','중식','11:30~13:30',md.l],['🌙','석식','17:30~19:00',md.d]];
-  return `<div class="meal-card"><div class="meal-head">🍽️ ${days[wd]}요일 식단 · 교류동 식당</div>${meals.map(([ico,nm,tm,menu])=>`<div class="meal-row"><div class="meal-type">${ico} ${nm}</div><div class="meal-items"><span style="font-size:17px;color:var(--t2);">${tm}</span><br>${menu}</div></div>`).join('')}<div style="padding:8px 14px;font-size:17px;color:var(--t2);">💡 전자명찰 = 식권 · SSUP 앱에서 명찰 캡처하세요</div></div>`;
+  return `<div class="meal-card"><div class="meal-head">🍽️ ${weekend?'다음 주 ':''}${days[wd]}요일 식단 · 교류동 식당</div>${weekend?'<div style="padding:8px 14px;font-size:17px;color:var(--t2);">📢 주말(토·일)에는 식사가 제공되지 않아요. 다음 주 월요일 식단을 알려드릴게요.</div>':''}${meals.map(([ico,nm,tm,menu])=>`<div class="meal-row"><div class="meal-type">${ico} ${nm}</div><div class="meal-items"><span style="font-size:17px;color:var(--t2);">${tm}</span><br>${menu}</div></div>`).join('')}<div style="padding:8px 14px;font-size:17px;color:var(--t2);">💡 전자명찰 = 식권 · SSUP 앱에서 명찰 캡처하세요</div></div>`;
 }
 function getShuttleCard(){
   const to=['08:30','09:00','11:50(수·목)','12:20','12:40','13:20','13:40','14:20','15:20','16:20','17:20','18:10'];
