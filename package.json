@@ -4,5 +4,8 @@
   "type": "module",
   "dependencies": {
     "@vercel/functions": "*"
+  },
+  "scripts": {
+    "test": "node --test tests/pick-engine.test.mjs"
   }
 }
